@@ -107,19 +107,19 @@ function install_pkg(pkg_dir, deploy_dir, variables, preserve_pkg_dir)
 
     -- check for dist.info
     local info, err = mf.load_distinfo(sys.make_path(pkg_dir, "dist.info"))
-    if not info then return nil, "Error installing: the directory '" .. pkg_dir .. "' doesn't exist or doesn't contain valid 'dist.info' file." end
+    if not info then return nil, "Error installing: the directory '" .. pkg_dir .. "' doesn't exist or doesn't contain valid 'dist.info' file.", 501 end
 
     -- check if the package is source
     if is_source_type(pkg_dir) then info = ensure_source_arch_and_type(info) end
 
     -- check package's architecture
     if not (info.arch == "Universal" or info.arch == cfg.arch) then
-        return nil, "Error installing '" .. info.name .. "-" .. info.version .. "': architecture '" .. info.arch .. "' is not suitable for this machine."
+        return nil, "Error installing '" .. info.name .. "-" .. info.version .. "': architecture '" .. info.arch .. "' is not suitable for this machine.", 502
     end
 
     -- check package's type
     if not (info.type == "all" or info.type == "source" or info.type == cfg.type) then
-        return nil, "Error installing '" .. info.name .. "-" .. info.version .. "': architecture type '" .. info.type .. "' is not suitable for this machine."
+        return nil, "Error installing '" .. info.name .. "-" .. info.version .. "': architecture type '" .. info.type .. "' is not suitable for this machine.", 502
     end
 
     local ok, err
@@ -133,7 +133,7 @@ function install_pkg(pkg_dir, deploy_dir, variables, preserve_pkg_dir)
 
         -- check if we have cmake
         ok = utils.system_dependency_available("cmake", "cmake --version")
-        if not ok then return nil, "Error when installing: Command 'cmake' not available on the system." end
+        if not ok then return nil, "Error when installing: Command 'cmake' not available on the system.", 503 end
 
         -- set cmake variables
         local cmake_variables = {}
@@ -153,15 +153,15 @@ function install_pkg(pkg_dir, deploy_dir, variables, preserve_pkg_dir)
         cmake_variables.CMAKE_PROGRAM_PATH = table.concat({cmake_variables.CMAKE_PROGRAM_PATH or "", sys.make_path(deploy_dir, "bin")}, ";")
 
         -- build the package and deploy it
-        ok, err = build_pkg(pkg_dir, deploy_dir, cmake_variables)
-        if not ok then return nil, err end
+        ok, err,status = build_pkg(pkg_dir, deploy_dir, cmake_variables)
+        if not ok then return nil, err, status end
 
     end
 
     -- delete directory of fetched package
     if not (cfg.debug or preserve_pkg_dir) then sys.delete(pkg_dir) end
 
-    return ok, err
+    return ok, err, status
 end
 
 -- Build and deploy package from 'src_dir' to 'deploy_dir' using 'variables'.
@@ -180,7 +180,7 @@ function build_pkg(src_dir, deploy_dir, variables)
 
     -- check for dist.info
     local info, err = mf.load_distinfo(sys.make_path(src_dir, "dist.info"))
-    if not info then return nil, "Error building package from '" .. src_dir .. "': it doesn't contain valid 'dist.info' file." end
+    if not info then return nil, "Error building package from '" .. src_dir .. "': it doesn't contain valid 'dist.info' file.", 501 end
     local pkg_name = info.name .. "-" .. info.version
 
     -- set machine information
@@ -194,7 +194,7 @@ function build_pkg(src_dir, deploy_dir, variables)
     -- create cmake cache
     variables["CMAKE_INSTALL_PREFIX"] = deploy_dir
     local cache_file = io.open(sys.make_path(cmake_build_dir, "cache.cmake"), "w")
-    if not cache_file then return nil, "Error creating CMake cache file in '" .. cmake_build_dir .. "'" end
+    if not cache_file then return nil, "Error creating CMake cache file in '" .. cmake_build_dir .. "'", 401 end
 
     -- Fill in cache variables
     for k,v in pairs(variables) do
@@ -224,11 +224,11 @@ function build_pkg(src_dir, deploy_dir, variables)
 
     -- set the cmake cache
     local ok = sys.exec("cd " .. sys.quote(cmake_build_dir) .. " && " .. cache_command .. " " .. sys.quote(src_dir))
-    if not ok then return nil, "Error preloading the CMake cache script '" .. sys.make_path(cmake_build_dir, "cmake.cache") .. "'" end
+    if not ok then return nil, "Error preloading the CMake cache script '" .. sys.make_path(cmake_build_dir, "cmake.cache") .. "'", 402 end
 
     -- build with cmake
     ok = sys.exec("cd " .. sys.quote(cmake_build_dir) .. " && " .. build_command)
-    if not ok then return nil, "Error building with CMake in directory '" .. cmake_build_dir .. "'" end
+    if not ok then return nil, "Error building with CMake in directory '" .. cmake_build_dir .. "'",403 end
 
     -- if this is only simulation, exit sucessfully, skipping the next actions
     if cfg.simulate then
@@ -245,7 +245,7 @@ function build_pkg(src_dir, deploy_dir, variables)
 
         local ok = sys.exec("cd " .. sys.quote(cmake_build_dir) .. " && " .. cfg.cmake .. " " .. strip_option .. " " ..cfg.install_component_command:gsub("#COMPONENT#", component))
 
-        if not ok then return nil, "Error when installing the component '" .. component .. "' with CMake in directory '" .. cmake_build_dir .. "'" end
+        if not ok then return nil, "Error when installing the component '" .. component .. "' with CMake in directory '" .. cmake_build_dir .. "'", 301 end
 
         local install_mf = sys.make_path(cmake_build_dir, "install_manifest_" .. component .. ".txt")
         local mf, err
@@ -254,7 +254,7 @@ function build_pkg(src_dir, deploy_dir, variables)
         -- collect files installed in this component
         if sys.exists(install_mf) then
             mf, err = io.open(install_mf, "r")
-            if not mf then return nil, "Error when opening the CMake installation manifest '" .. install_mf .. "': " .. err end
+            if not mf then return nil, "Error when opening the CMake installation manifest '" .. install_mf .. "': " .. err, 302 end
             for line in mf:lines() do
                 line = sys.check_separators(line)
                 local file = line:gsub(utils.escape_magic(deploy_dir .. sys.path_separator()), "")
@@ -272,7 +272,7 @@ function build_pkg(src_dir, deploy_dir, variables)
     if cfg.test then
         print("Testing " .. sys.extract_name(src_dir) .. " ...")
         ok = sys.exec("cd " .. sys.quote(deploy_dir) .. " && " .. cfg.test_command)
-        if not ok then return nil, "Error when testing the module '" .. pkg_name .. "' with CTest." end
+        if not ok then return nil, "Error when testing the module '" .. pkg_name .. "' with CTest.", 201 end
     end
 
     -- Rewrite dependencies for binary package

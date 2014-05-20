@@ -73,7 +73,7 @@ function install(package_names, deploy_dir, variables)
 
     -- get manifest
     local manifest, err = mf.get_manifest()
-    if not manifest then return nil, "Error getting manifest: " .. err end
+    if not manifest then return nil, "Error getting manifest: " .. err, 101 end
 
     -- get dependency manifest
     -- TODO: Is it good that dep_manifest is deploy_dir-specific?
@@ -89,7 +89,7 @@ function install(package_names, deploy_dir, variables)
 
     -- resolve dependencies
     local dependencies, dep_manifest_or_err = depends.get_depends(package_names, installed, manifest, dep_manifest, deploy_dir, false, false)
-    if not dependencies then return nil, dep_manifest_or_err end
+    if not dependencies then return nil, dep_manifest_or_err, 102 end
     if #dependencies == 0 then return nil, "No packages to install." end
 
     -- save updated dependency manifest
@@ -102,14 +102,14 @@ function install(package_names, deploy_dir, variables)
     local fetched_pkgs = {}
     for _, pkg in pairs(dependencies) do
         local fetched_pkg, err = package.fetch_pkg(pkg, sys.make_path(deploy_dir, cfg.temp_dir))
-        if not fetched_pkg then return nil, err end
+        if not fetched_pkg then return nil, err, 103 end
         table.insert(fetched_pkgs, fetched_pkg)
     end
 
     -- install fetched packages
     for _, pkg in pairs(fetched_pkgs) do
-        local ok, err = package.install_pkg(pkg.download_dir, deploy_dir, variables, pkg.preserve_pkg_dir)
-        if not ok then return nil, err end
+        local ok, err, status = package.install_pkg(pkg.download_dir, deploy_dir, variables, pkg.preserve_pkg_dir)
+        if not ok then return nil, err, status end
     end
 
     return true
