@@ -3,7 +3,6 @@
 local dist = require "dist"
 local cfg = require "dist.config"
 local depends = require "dist.depends"
-local const = require "dist.constraints"
 
 -- Return string describing packages and versions in 'pkgs' table, separated by space.
 -- e.g.: "luadist-1.2 coxpcall-0.4 luafilesystem 0.3"
@@ -71,7 +70,7 @@ tests.depends_1 = function()
     manifest.a = {name="a", arch="Universal", type="all", version="scm", depends={"b"}}
     manifest.b = {name="b", arch="Universal", type="all", version="scm",}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "b-scm a-scm", pkgs_fail_msg(pkgs, err))
 end
 
@@ -82,7 +81,7 @@ tests.depends_2 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm", depends={"c"}}
     manifest.c = {name="c", arch="Universal", type="all", version="scm",}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "c-scm b-scm a-scm", pkgs_fail_msg(pkgs, err))
 end
 
@@ -104,7 +103,7 @@ tests.depends_3 = function()
     manifest.k = {name="k", arch="Universal", type="all", version="scm",}
     manifest.l = {name="l", arch="Universal", type="all", version="scm",}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "b-scm f-scm l-scm g-scm c-scm h-scm i-scm e-scm k-scm j-scm d-scm a-scm", pkgs_fail_msg(pkgs, err))
 end
 
@@ -117,7 +116,7 @@ tests.depends_circular_1 = function()
     manifest.a = {name="a", arch="Universal", type="all", version="scm", depends={"b-scm"}}
     manifest.b = {name="b", arch="Universal", type="all", version="scm", depends={"a-scm"}}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("circular"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -127,7 +126,7 @@ tests.depends_circular_2 = function()
     manifest.a = {name="a", arch="Universal", type="all", version="scm", depends={"b"}}
     manifest.b = {name="b", arch="Universal", type="all", version="scm", depends={"a"}}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("circular"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -138,7 +137,7 @@ tests.depends_circular_3 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm", depends={"c"}}
     manifest.c = {name="c", arch="Universal", type="all", version="scm", depends={"a"}}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("circular"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -151,7 +150,7 @@ tests.depends_circular_4 = function()
     manifest.d = {name="d", arch="Universal", type="all", version="scm", depends={"e"}}
     manifest.e = {name="e", arch="Universal", type="all", version="scm", depends={"b"}}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("circular"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -167,7 +166,7 @@ tests.conflicts_with_installed_1 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm",}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -178,7 +177,7 @@ tests.conflicts_with_installed_2 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm", conflicts={"a"}}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -189,7 +188,7 @@ tests.conflicts_with_installed_3 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm", conflicts={"a"}}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -202,7 +201,7 @@ tests.conflicts_with_to_install_1 = function()
     manifest.a = {name="a", arch="Universal", type="all", version="scm", conflicts={"b"}}
     manifest.b = {name="b", arch="Universal", type="all", version="scm",}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -212,7 +211,7 @@ tests.conflicts_with_to_install_2 = function()
     manifest.a = {name="a", arch="Universal", type="all", version="scm",}
     manifest.b = {name="b", arch="Universal", type="all", version="scm", conflicts={"a"}}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -222,7 +221,7 @@ tests.conflicts_with_to_install_3 = function()
     manifest.a = {name="a", arch="Universal", type="all", version="scm", conflicts={"b"}}
     manifest.b = {name="b", arch="Universal", type="all", version="scm", conflicts={"a"}}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -239,7 +238,7 @@ tests.conflicts_and_depends_with_installed_1 = function()
     manifest.c = {name="c", arch="Universal", type="all", version="scm",}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -251,7 +250,7 @@ tests.conflicts_and_depends_with_installed_2 = function()
     manifest.c = {name="c", arch="Universal", type="all", version="scm", conflicts={"a"}}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -265,7 +264,7 @@ tests.conflicts_and_depends_with_to_install_1 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm", conflicts={"c"}}
     manifest.c = {name="c", arch="Universal", type="all", version="scm",}
 
-    local pkgs, err = depends.get_depends({'a', 'c'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'c'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -276,7 +275,7 @@ tests.conflicts_and_depends_with_to_install_2 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm",}
     manifest.c = {name="c", arch="Universal", type="all", version="scm", conflicts={"b"}}
 
-    local pkgs, err = depends.get_depends({'a', 'c'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'c'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -292,7 +291,7 @@ tests.provides_direct_with_installed_1 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm",}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "", pkgs_fail_msg(pkgs, err))
 end
 
@@ -303,7 +302,7 @@ tests.provides_direct_with_installed_2 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm", provides={"a-scm"}}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("already installed"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -322,7 +321,7 @@ tests.provides_direct_with_to_install_1 = function()
     manifest.a = {name="a", arch="Universal", type="all", version="scm", provides={"b-scm"}}
     manifest.b = {name="b", arch="Universal", type="all", version="scm",}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("already selected"), pkgs_fail_msg(pkgs, err))
 end
 --]]
@@ -333,7 +332,7 @@ tests.provides_direct_with_to_install_2 = function()
     manifest.a = {name="a", arch="Universal", type="all", version="scm",}
     manifest.b = {name="b", arch="Universal", type="all", version="scm", provides={"a-scm"}}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("already selected"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -347,7 +346,7 @@ tests.provides_same_with_installed_1 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm", provides={"c-scm"}}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("already installed"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -359,7 +358,7 @@ tests.provides_same_with_to_install_1 = function()
     manifest.a = {name="a", arch="Universal", type="all", version="scm", provides={"c-scm"}}
     manifest.b = {name="b", arch="Universal", type="all", version="scm", provides={"c-scm"}}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("already selected"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -376,7 +375,7 @@ tests.provides_direct_and_depends_with_installed_1 = function()
     manifest.c = {name="c", arch="Universal", type="all", version="scm",}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "b-scm", pkgs_fail_msg(pkgs, err))
 end
 
@@ -388,7 +387,7 @@ tests.provides_direct_and_depends_with_installed_2 = function()
     manifest.c = {name="c", arch="Universal", type="all", version="scm", provides={"a-scm"}}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("already installed"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -402,7 +401,7 @@ tests.provides_direct_and_depends_with_to_install_1 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm", depends={"c"}}
     manifest.c = {name="c", arch="Universal", type="all", version="scm",}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "a-scm b-scm", pkgs_fail_msg(pkgs, err))
 end
 
@@ -417,7 +416,7 @@ tests.provides_direct_and_depends_with_to_install_2 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm", provides={"c-scm"}}
     manifest.c = {name="c", arch="Universal", type="all", version="scm",}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     print(err)
     assert(describe_packages(pkgs) == "b-scm a-scm", pkgs_fail_msg(pkgs, err))
 end
@@ -434,7 +433,7 @@ tests.provides_same_and_depends_with_installed_1 = function()
     manifest.c = {name="c", arch="Universal", type="all", version="scm", provides={"d-scm"}}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("already installed"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -448,7 +447,7 @@ tests.provides_same_and_depends_with_to_install_1 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm", provides={"d-scm"}}
     manifest.c = {name="c", arch="Universal", type="all", version="scm", provides={"d-scm"}}
 
-    local pkgs, err = depends.get_depends({'a', 'c'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'c'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("already selected"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -459,7 +458,7 @@ tests.provides_same_and_depends_with_to_install_2 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm", depends={"c"}}
     manifest.c = {name="c", arch="Universal", type="all", version="scm", provides={"d-scm"}}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("already selected"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -471,7 +470,7 @@ tests.provides_same_and_depends_with_to_install_3 = function()
     manifest.c = {name="c", arch="Universal", type="all", version="scm", depends={"d"}}
     manifest.d = {name="d", arch="Universal", type="all", version="scm", provides={"e-scm"}}
 
-    local pkgs, err = depends.get_depends({'a', 'c'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'c'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("already selected"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -487,7 +486,7 @@ tests.provides_direct_and_conflicts_with_to_install_1 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm", conflicts={"c"}}
     manifest.c = {name="c", arch="Universal", type="all", version="scm",}
 
-    local pkgs, err = depends.get_depends({'a', 'c'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'c'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "a-scm c-scm", pkgs_fail_msg(pkgs, err))
 end
 
@@ -498,7 +497,7 @@ tests.provides_direct_and_conflicts_with_to_install_2 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm", conflicts={"c"}}
     manifest.c = {name="c", arch="Universal", type="all", version="scm",}
 
-    local pkgs, err = depends.get_depends({'c', 'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'c', 'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "c-scm a-scm", pkgs_fail_msg(pkgs, err))
 end
 
@@ -509,7 +508,7 @@ tests.provides_direct_and_conflicts_with_to_install_3 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm",}
     manifest.c = {name="c", arch="Universal", type="all", version="scm", conflicts={"b"}}
 
-    local pkgs, err = depends.get_depends({'a', 'c'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'c'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -520,7 +519,7 @@ tests.provides_direct_and_conflicts_with_to_install_4 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="scm",}
     manifest.c = {name="c", arch="Universal", type="all", version="scm", conflicts={"b"}}
 
-    local pkgs, err = depends.get_depends({'c', 'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'c', 'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -535,7 +534,7 @@ tests.provides_direct_and_conflicts_with_installed_1 = function()
     manifest.c = {name="c", arch="Universal", type="all", version="scm",}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'c'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'c'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "c-scm", pkgs_fail_msg(pkgs, err))
 end
 
@@ -547,7 +546,7 @@ tests.provides_direct_and_conflicts_with_installed_2 = function()
     manifest.c = {name="c", arch="Universal", type="all", version="scm", conflicts={"b"}}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'c'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'c'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -565,7 +564,7 @@ tests.provides_direct_depends_and_conflicts_with_installed_1 = function()
     manifest.d = {name="d", arch="Universal", type="all", version="scm",}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -578,7 +577,7 @@ tests.provides_direct_depends_and_conflicts_with_installed_2 = function()
     manifest.d = {name="d", arch="Universal", type="all", version="scm",}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -591,7 +590,7 @@ tests.provides_direct_depends_and_conflicts_with_installed_3 = function()
     manifest.d = {name="d", arch="Universal", type="all", version="scm", conflicts={"a"}}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "b-scm", pkgs_fail_msg(pkgs, err))
 end
 
@@ -604,7 +603,7 @@ tests.provides_direct_depends_and_conflicts_with_installed_4 = function()
     manifest.d = {name="d", arch="Universal", type="all", version="scm",}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "b-scm", pkgs_fail_msg(pkgs, err))
 end
 
@@ -617,7 +616,7 @@ tests.provides_direct_depends_and_conflicts_with_installed_5 = function()
     manifest.d = {name="d", arch="Universal", type="all", version="scm", conflicts={"c"}}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'c'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'c'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "c-scm", pkgs_fail_msg(pkgs, err))
 end
 
@@ -631,7 +630,7 @@ tests.provides_direct_depends_and_conflicts_with_to_install_1 = function()
     manifest.c = {name="c", arch="Universal", type="all", version="scm", depends={"d"}}
     manifest.d = {name="d", arch="Universal", type="all", version="scm", conflicts={"a"}}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "a-scm b-scm", pkgs_fail_msg(pkgs, err))
 end
 
@@ -643,7 +642,7 @@ tests.provides_direct_depends_and_conflicts_with_to_install_2 = function()
     manifest.c = {name="c", arch="Universal", type="all", version="scm", depends={"d"}}
     manifest.d = {name="d", arch="Universal", type="all", version="scm",}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "a-scm b-scm", pkgs_fail_msg(pkgs, err))
 end
 
@@ -658,7 +657,7 @@ tests.provides_direct_depends_and_conflicts_with_to_install_3 = function()
     manifest.c = {name="c", arch="Universal", type="all", version="scm", depends={"d"}}
     manifest.d = {name="d", arch="Universal", type="all", version="scm", conflicts={"a"}}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "b-scm a-scm", pkgs_fail_msg(pkgs, err))
 end
 --]]
@@ -673,7 +672,7 @@ tests.provides_direct_depends_and_conflicts_with_to_install_4 = function()
     manifest.c = {name="c", arch="Universal", type="all", version="scm", depends={"d"}}
     manifest.d = {name="d", arch="Universal", type="all", version="scm"}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "b-scm a-scm", pkgs_fail_msg(pkgs, err))
 end
 --]]
@@ -686,7 +685,7 @@ tests.provides_direct_depends_and_conflicts_with_to_install_5 = function()
     manifest.c = {name="c", arch="Universal", type="all", version="scm", depends={"d"}}
     manifest.d = {name="d", arch="Universal", type="all", version="scm", conflicts={"e"}}
 
-    local pkgs, err = depends.get_depends({'a', 'c'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'c'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -700,7 +699,7 @@ tests.provides_direct_depends_and_conflicts_with_to_install_6 = function()
     manifest.e = {name="e", arch="Universal", type="all", version="scm", provides={"f-scm"}}
     manifest.f = {name="f", arch="Universal", type="all", version="scm", conflicts={"c"}}
 
-    local pkgs, err = depends.get_depends({'a', 'd'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'd'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "b-scm a-scm e-scm d-scm", pkgs_fail_msg(pkgs, err))
 end
 
@@ -714,7 +713,7 @@ tests.provides_direct_depends_and_conflicts_with_to_install_7 = function()
     manifest.e = {name="e", arch="Universal", type="all", version="scm", provides={"f-scm"}}
     manifest.f = {name="f", arch="Universal", type="all", version="scm",}
 
-    local pkgs, err = depends.get_depends({'a', 'd'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'd'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "b-scm a-scm e-scm d-scm", pkgs_fail_msg(pkgs, err))
 end
 
@@ -733,7 +732,7 @@ tests.version_install_newest_1 = function()
     manifest.a1 = {name="a", arch="Universal", type="all", version="1"}
     manifest.a2 = {name="a", arch="Universal", type="all", version="2"}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "a-2", pkgs_fail_msg(pkgs, err))
 end
 
@@ -744,7 +743,7 @@ tests.version_install_newest_2 = function()
     manifest.b1 = {name="b", arch="Universal", type="all", version="1"}
     manifest.b2 = {name="b", arch="Universal", type="all", version="2"}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "b-2 a-scm", pkgs_fail_msg(pkgs, err))
 end
 
@@ -775,7 +774,7 @@ tests.version_install_newest_3 = function()
     manifest.h1 = {name="h", arch="Universal", type="all", version="1alpha2",}
     manifest.h2 = {name="h", arch="Universal", type="all", version="1work2",}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "h-1alpha2 g-1scm f-3.1rc e-3.1pre d-1rc3 c-2beta b-2.0 a-1", pkgs_fail_msg(pkgs, err))
 end
 
@@ -794,7 +793,7 @@ tests.version_install_newest_4 = function()
     manifest.d1 = {name="d", arch="Universal", type="all", version="2.1beta3",}
     manifest.d2 = {name="d", arch="Universal", type="all", version="2.2alpha2",}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "d-2.2alpha2 c-1.1rc2 b-1.2 a-2alpha", pkgs_fail_msg(pkgs, err))
 end
 
@@ -818,7 +817,7 @@ tests.version_of_depends_1 = function()
     manifest.d4 = {name="d", arch="Universal", type="all", version="3.3.2",}
     manifest.d5 = {name="d", arch="Universal", type="all", version="3.4",}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "d-3.3.2 c-2.1 b-1.0 a-1.0", pkgs_fail_msg(pkgs, err))
 end
 
@@ -839,7 +838,7 @@ tests.version_of_depends_2 = function()
     manifest.d4 = {name="d", arch="Universal", type="all", version="4.4alpha",}
     manifest.d5 = {name="d", arch="Universal", type="all", version="4.4",}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "d-4.4alpha c-2.0.9 b-0.9 a-1.0", pkgs_fail_msg(pkgs, err))
 end
 
@@ -857,7 +856,7 @@ tests.version_of_depends_3 = function()
     manifest.c3 = {name="c", arch="Universal", type="all", version="2.1.1"}
     manifest.c2 = {name="c", arch="Universal", type="all", version="2.1.0"}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "c-2.1.0 b-1.3 a-1.0", pkgs_fail_msg(pkgs, err))
 end
 
@@ -871,7 +870,7 @@ tests.version_of_depends_4 = function()
 
     manifest.c = {name="c", arch="Universal", type="all", version="1.0", depends={"a~>1.0","b>=1.0"}}
 
-    local pkgs, err = depends.get_depends({'c'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'c'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "a-1.0 b-1.0 c-1.0", pkgs_fail_msg(pkgs, err))
 end
 
@@ -884,7 +883,7 @@ tests.version_of_depends_5 = function()
 
     manifest.c = {name="c", arch="Universal", type="all", version="1.0", depends={"a>=1.0","b>=1.0"}}
 
-    local pkgs, err = depends.get_depends({'c'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'c'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "a-1.0 b-1.0 c-1.0", pkgs_fail_msg(pkgs, err))
 end
 
@@ -900,7 +899,7 @@ tests.version_of_depends_6 = function()
 
     manifest.c = {name="c", arch="Universal", type="all", version="1.0", depends={"a>=1.0","b>=1.0"}}
 
-    local pkgs, err = depends.get_depends({'c'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'c'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "a-1.0 b-1.0 c-1.0", pkgs_fail_msg(pkgs, err))
 end
 --]]
@@ -920,7 +919,7 @@ tests.version_of_depends_7 = function()
 
     manifest.c = {name="c", arch="Universal", type="all", version="1.0", depends={"a>=1.0","b>=1.0"}}
 
-    local pkgs, err = depends.get_depends({'c'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'c'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "a-1.0 b-1.0 c-1.0", pkgs_fail_msg(pkgs, err))
 end
 --]]
@@ -934,7 +933,7 @@ tests.version_of_installed_1 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="1.0", depends={"a>=1.2"}}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "b-1.0", pkgs_fail_msg(pkgs, err))
 end
 
@@ -946,7 +945,7 @@ tests.version_of_installed_2 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="1.0", depends={"a>=1.2"}}
     installed.a12 = manifest.a12
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "b-1.0", pkgs_fail_msg(pkgs, err))
 end
 
@@ -957,7 +956,7 @@ tests.version_of_installed_3 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="1.0", depends={"a>=1.4"}}
     installed.a = manifest.a
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("but installed at version"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -969,7 +968,7 @@ tests.version_of_installed_4 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="1.0", depends={"a>=1.3"}}
     installed.a12 = manifest.a12
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("but installed at version"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -983,7 +982,7 @@ tests.version_of_provided_1 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="1.0", depends={"a>=1.2"}}
     installed.x = manifest.x
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "b-1.0", pkgs_fail_msg(pkgs, err))
 end
 
@@ -995,7 +994,7 @@ tests.version_of_provided_2 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="1.0", depends={"a>=1.2"}}
     installed.x = manifest.x
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "b-1.0", pkgs_fail_msg(pkgs, err))
 end
 
@@ -1006,7 +1005,7 @@ tests.version_of_provided_3 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="1.0", depends={"a>=1.4"}}
     installed.x = manifest.x
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("but installed at version"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -1018,7 +1017,7 @@ tests.version_of_provided_4 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="1.0", depends={"a>=1.3"}}
     installed.x = manifest.x
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("but installed at version"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -1031,7 +1030,7 @@ tests.no_packages_to_install_1 = function()
     local manifest, installed = {}, {}
     manifest.a = {name="a", arch="Universal", type="all", version="1.0",}
 
-    local pkgs, err = depends.get_depends({'x'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'x'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("No suitable candidate"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -1040,7 +1039,7 @@ tests.no_packages_to_install_2 = function()
     local manifest, installed = {}, {}
     manifest.a = {name="a", arch="Universal", type="all", version="1.0", depends={"x"}}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("No suitable candidate"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -1050,7 +1049,7 @@ tests.no_packages_to_install_3 = function()
     manifest.a = {name="a", arch="Universal", type="all", version="1.0", depends={"b>1.0"}}
     manifest.b = {name="b", arch="Universal", type="all", version="0.9",}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("No suitable candidate"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -1062,7 +1061,7 @@ tests.no_packages_to_install_4 = function()
     installed.a = manifest.a
     installed.b = manifest.b
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "", pkgs_fail_msg(pkgs, err))
 end
 
@@ -1074,7 +1073,7 @@ tests.installed_not_in_manifest_1 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="0.9", depends={"a"}}
     installed.a = {name="a", arch="Universal", type="all", version="1.0",}
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "b-0.9", pkgs_fail_msg(pkgs, err))
 end
 
@@ -1084,7 +1083,7 @@ tests.installed_not_in_manifest_2 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="0.9", depends={"a"}}
     installed.x = {name="x", arch="Universal", type="all", version="1.0", provides={"a-1.0"}}
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "b-0.9", pkgs_fail_msg(pkgs, err))
 end
 
@@ -1097,7 +1096,7 @@ tests.arch_type_checks_1 = function()
     manifest.a = {name="a", arch="notUniversal", type="all", version="1.0",}
     manifest.b = {name="b", arch="notUniversal", type="all", version="0.9",}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("arch and type"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -1107,7 +1106,7 @@ tests.arch_type_checks_2 = function()
     manifest.a = {name="a", arch="Universal", type="not_all", version="1.0",}
     manifest.b = {name="b", arch="Universal", type="not_all", version="0.9",}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("arch and type"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -1119,7 +1118,7 @@ tests.arch_type_checks_3 = function()
     manifest.b1 = {name="b", arch="notUniversal", type="all", version="1.9",}
     manifest.b2 = {name="b", arch="Universal", type="all", version="0.8",}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "a-1.0 b-0.8", pkgs_fail_msg(pkgs, err))
 end
 
@@ -1131,7 +1130,7 @@ tests.arch_type_checks_4 = function()
     manifest.b1 = {name="b", arch="Universal", type="not_all", version="1.9",}
     manifest.b2 = {name="b", arch="Universal", type="all", version="0.8",}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "a-1.0 b-0.8", pkgs_fail_msg(pkgs, err))
 end
 
@@ -1148,7 +1147,7 @@ tests.arch_type_checks_5 = function()
     manifest.b3 = {name="b", arch="notUniversal", type="not_all", version="1.7",}
     manifest.b4 = {name="b", arch="Universal", type="source", version="1.5",}
 
-    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a', 'b'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "a-0.8 b-1.5", pkgs_fail_msg(pkgs, err))
 end
 
@@ -1161,7 +1160,7 @@ tests.os_specific_depends_1 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="0.9",}
     manifest.c = {name="c", arch="Universal", type="all", version="0.9",}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "b-0.9 c-0.9 a-1.0", pkgs_fail_msg(pkgs, err))
 end
 
@@ -1171,7 +1170,7 @@ tests.os_specific_depends_2 = function()
     manifest.a = {name="a", arch="Universal", type="all", version="1.0", depends={['other'] = {"b"}}}
     manifest.b = {name="b", arch="Universal", type="all", version="0.9",}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "a-1.0", pkgs_fail_msg(pkgs, err))
 end
 
@@ -1183,7 +1182,7 @@ tests.os_specific_depends_3 = function()
     manifest.c = {name="c", arch="Universal", type="all", version="0.9",}
     manifest.d = {name="d", arch="Universal", type="all", version="0.9",}
 
-    local pkgs, err = depends.get_depends({'a'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "c-0.9 d-0.9 b-0.9 a-1.0", pkgs_fail_msg(pkgs, err))
 end
 
@@ -1198,7 +1197,7 @@ tests.install_specific_version_1 = function()
     manifest.a1 = {name="a", arch="Universal", type="all", version="1.0",}
     manifest.a2 = {name="a", arch="Universal", type="all", version="2.0",}
 
-    local pkgs, err = depends.get_depends({'a-1.0'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a-1.0'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "a-1.0", pkgs_fail_msg(pkgs, err))
 end
 
@@ -1208,7 +1207,7 @@ tests.install_specific_version_2 = function()
     manifest.a1 = {name="a", arch="Universal", type="all", version="1.0",}
     manifest.a2 = {name="a", arch="Universal", type="all", version="2.0",}
 
-    local pkgs, err = depends.get_depends({'a<2.0'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a<2.0'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "a-1.0", pkgs_fail_msg(pkgs, err))
 end
 
@@ -1218,7 +1217,7 @@ tests.install_specific_version_3 = function()
     manifest.a1 = {name="a", arch="Universal", type="all", version="1.0",}
     manifest.a2 = {name="a", arch="Universal", type="all", version="2.0",}
 
-    local pkgs, err = depends.get_depends({'a<=2.0'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a<=2.0'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "a-2.0", pkgs_fail_msg(pkgs, err))
 end
 
@@ -1228,7 +1227,7 @@ tests.install_specific_version_4 = function()
     manifest.a1 = {name="a", arch="Universal", type="all", version="1.0",}
     manifest.a2 = {name="a", arch="Universal", type="all", version="2.0",}
 
-    local pkgs, err = depends.get_depends({'a>=3.0'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a>=3.0'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("No suitable candidate"), pkgs_fail_msg(pkgs, err))
 end
 
@@ -1243,7 +1242,7 @@ tests.install_specific_version_with_conflicts_1 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="1.0",}
     installed.b = manifest.b
 
-    local pkgs, err = depends.get_depends({'a>=2.0'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a>=2.0'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == "a-2.0" , pkgs_fail_msg(pkgs, err))
 end
 
@@ -1256,80 +1255,318 @@ tests.install_specific_version_with_conflicts_2 = function()
     manifest.b = {name="b", arch="Universal", type="all", version="1.0",}
     installed.b = manifest.b
 
-    local pkgs, err = depends.get_depends({'a>2.0'}, installed, manifest, nil, nil, true, true)
+    local pkgs, err = depends.get_depends({'a>2.0'}, installed, manifest, true, true)
     assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
--- TODO: add an ability to find package that is only provided by another one?
--- a-1.0 provides c, install c
---[[
-tests.install_package_provided_by_another_package = function()
+--==============================================================
+--tests for update functionality
+--==============================================================
+
+-- installed a-1.0 b-0.1 c-2.0, a-1.1 a-1.2 available, b-0.2 and 0.3 available, b-0.3 conflicts c, update a + b + c
+tests.update_newest_1 = function()
     local manifest, installed = {}, {}
-    manifest.a = {name="a", arch="Universal", type="all", version="1.0", provides={"b"}}
+    manifest.a1 = {name="a", arch="Universal", type="all", version="1.0"}
+    manifest.a2 = {name="a", arch="Universal", type="all", version="1.1"}
+    manifest.a3 = {name="a", arch="Universal", type="all", version="1.2"}
 
-    local pkgs, err = depends.get_depends({'b'}, installed, manifest, nil, nil, true, true)
-    assert(describe_packages(pkgs) == "a-1.0", pkgs_fail_msg(pkgs, err))
+    manifest.b1 = {name="b", arch="Universal", type="all", version="0.1", depends={"c"}}
+    manifest.b2 = {name="b", arch="Universal", type="all", version="0.2", depends={"c"}}
+    manifest.b3 = {name="b", arch="Universal", type="all", version="0.3", conflicts={"c"}}
+
+    manifest.c1 = {name="c", arch="Universal", type="all", version="2.0"}
+    manifest.c2 = {name="c", arch="Universal", type="all", version="3.0"}
+
+    installed.a = manifest.a1
+    installed.b = manifest.b1
+    installed.c = manifest.c1
+
+    local pkgs, err = depends.get_depends_1({'a', 'b', 'c'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == "a-1.2 b-0.2 c-3.0", pkgs_fail_msg(pkgs, err))
 end
---]]
 
--- Test version comparison logic
-tests.compare_versions = function()
-    assert(const.parseVersion("") == const.parseVersion(""))
-    assert(const.parseVersion("") ~= const.parseVersion("test"))
-    assert(const.compareVersions("2", "1"))
-    assert(const.compareVersions("2.0", "0"))
-    assert(const.compareVersions("2", "1.0"))
-    assert(const.parseVersion("3.2") < const.parseVersion("3.3.2"))
-    assert(not(const.parseVersion("1.0.0-alpha") < const.parseVersion("1.0-alpha")))
-    assert(not(const.parseVersion("1.0.0-alpha") > const.parseVersion("1.0-alpha")))
-    assert(const.parseVersion("1.0.0-alpha2") == const.parseVersion("1.0-alpha2"))
-    assert(const.compareVersions("1.0.0-beta", "1.0.0-alpha"))
-    assert(const.compareVersions("1.0.0-beta", "alpha-1.0.0"))
-    assert(const.compareVersions("1.0-beta", "1.0.0-alpha"))
-    assert(not(const.compareVersions("1.0-beta", "1.1.0-alpha")))
-    assert(not(const.compareVersions("1.0.0-beta", "1.0-beta")))
-    assert(not(const.compareVersions("1.0.0-alpha", "1.0-alpha")))
+-- installed a-1.0 b-0.1 c-2.0, a-1.1 a-1.2 available, b-0.2 and 0.3 available, b-0.3 conflicts c, c-3.0 depends d~>1.0, update a + b + c
+tests.update_newest_2 = function()
+    local manifest, installed = {}, {}
+    manifest.a1 = {name="a", arch="Universal", type="all", version="1.0"}
+    manifest.a2 = {name="a", arch="Universal", type="all", version="1.1"}
+    manifest.a3 = {name="a", arch="Universal", type="all", version="1.2"}
 
-    -- because of possible multiple sets of numbers (e.g. 1_0_0alpha3.4), the 
-    -- comparison can only match for consistent version syntax
-    assert(not(const.parseVersion("1.0.0-alpha") == const.parseVersion("alpha-1.0.0")))
-    assert(const.parseVersion("1.0.0-alpha3") == const.parseVersion("1.0.0-alpha3"))
-    assert(const.parseVersion("alpha3-1.0.0") == const.parseVersion("alpha3-1.0.0"))
-    assert(const.parseVersion("1.0.0-beta") ~= const.parseVersion("beta-1.0.0"))
+    manifest.b1 = {name="b", arch="Universal", type="all", version="0.1"}
+    manifest.b2 = {name="b", arch="Universal", type="all", version="0.2"}
+    manifest.b3 = {name="b", arch="Universal", type="all", version="0.3", conflicts={"c"}}
 
-    assert(const.parseVersion("1.4.2") == const.parseVersion("1.4.2"))
-    assert(const.parseVersion("1.1.2") < const.parseVersion("1.2"))
-    assert(const.parseVersion("1.1.2") < const.parseVersion("1.2.0"))
-    assert(const.parseVersion("1.1.2") < const.parseVersion("1.2.1"))
-    assert(const.parseVersion("1.1.2") < const.parseVersion("1.12"))
-    assert(const.parseVersion("1.2") == const.parseVersion("1.2"))
-    assert(const.parseVersion("1.2") == const.parseVersion("1.2.0"))
-    assert(not (const.parseVersion("1.2") < const.parseVersion("1.2.0")))
-    assert(not (const.parseVersion("1.2") > const.parseVersion("1.2.0")))
-    assert(const.parseVersion("1.2") < const.parseVersion("1.2.1"))
-    assert(const.parseVersion("1.2") < const.parseVersion("1.12"))
-    assert(const.parseVersion("1.2.0") == const.parseVersion("1.2.0"))
-    assert(const.parseVersion("1.2.0") <= const.parseVersion("1.2.0"))
-    assert(const.parseVersion("1.2.0") < const.parseVersion("1.2.1"))
-    assert(const.parseVersion("1.2.0") < const.parseVersion("1.12"))
-    assert(const.parseVersion("1.2.0") <= const.parseVersion("1.12"))
-    assert(const.parseVersion("1.3") > const.parseVersion("1.3-alpha"))
-    assert(const.parseVersion("1.3") > const.parseVersion("1.3-beta"))
-    assert(const.parseVersion("1.3") > const.parseVersion("1.3-scm"))
-    assert(const.parseVersion("1.3-alpha") == const.parseVersion("1.3-alpha"))
-    assert(const.parseVersion("1.3-alpha") < const.parseVersion("1.3-beta"))
-    assert(const.parseVersion("1.3-alpha") < const.parseVersion("1.3-scm"))
-    assert(const.parseVersion("1.3-beta") == const.parseVersion("1.3-beta"))
-    assert(const.parseVersion("1.3-beta") > const.parseVersion("1.3-noisy_word"))
-    assert(const.parseVersion("1rc3") < const.parseVersion("1.1rc2"))
-    assert(const.parseVersion("1.1.2scm") < const.parseVersion("1.1.2"))
-    assert(const.parseVersion("1.1.2rc") < const.parseVersion("1.1.2_scm"))
-    assert(const.parseVersion("1.1.2-pre") < const.parseVersion("1.1.2_rc"))
-    assert(const.parseVersion("1.1.2_beta") < const.parseVersion("1.1.2_pre"))
-    assert(const.parseVersion("1.1.2_alpha") < const.parseVersion("1.1.2_beta"))
-    assert(const.parseVersion("1.1.2_work") < const.parseVersion("1.1.2_alpha"))
-    assert(const.parseVersion("1.1.2_whatever") < const.parseVersion("1.1.2_work"))
-    assert(const.parseVersion("V4") > const.parseVersion("V2.9"))
+    manifest.c1 = {name="c", arch="Universal", type="all", version="2.0"}
+    manifest.c2 = {name="c", arch="Universal", type="all", version="3.0", depends={"d~>1.0"}}
+
+    manifest.d1 = {name="d", arch="Universal", type="all", version="0.8"}
+    manifest.d2 = {name="d", arch="Universal", type="all", version="0.9"}
+    manifest.d3 = {name="d", arch="Universal", type="all", version="1.0"}
+    manifest.d4 = {name="d", arch="Universal", type="all", version="1.3"}
+
+    installed.a = manifest.a1
+    installed.b = manifest.b1
+    installed.c = manifest.c1
+
+    local pkgs, err = depends.get_depends_1({'a', 'b', 'c'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == "a-1.2 b-0.2 d-1.0 c-3.0", pkgs_fail_msg(pkgs, err))
+end
+
+-- installed a-1.0, a-1.1 a-1.2 available, a-1.1 depends b, a-1.2 conflicts b, b depends c, update a
+tests.depends_u1 = function()
+    local manifest, installed = {}, {}
+    manifest.a1 = {name="a", arch="Universal", type="all", version="1.0", depends={"b"}}
+    manifest.a2 = {name="a", arch="Universal", type="all", version="1.1", depends={"b"}}
+    manifest.a3 = {name="a", arch="Universal", type="all", version="1.2", conflicts={"b"}}
+    manifest.b = {name="b", arch="Universal", type="all", version="scm", depends={"c"}}
+    manifest.c = {name="c", arch="Universal", type="all", version="scm",}
+    installed.a = manifest.a1
+    installed.b = manifest.b
+    installed.c = manifest.c
+
+    local pkgs, err = depends.get_depends_1({'a'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == "a-1.1", pkgs_fail_msg(pkgs, err))
+end
+
+-- installed a-1.0, a-1.1 a-1.2 available, a-1.1 depends b and c>0.4, a-1.2 conflicts b, b depends c, update a
+tests.depends_u2 = function()
+    local manifest, installed = {}, {}
+    manifest.a1 = {name="a", arch="Universal", type="all", version="1.0", depends={"b"}}
+    manifest.a2 = {name="a", arch="Universal", type="all", version="1.1", depends={"b", "c>0.4"}}
+    manifest.a3 = {name="a", arch="Universal", type="all", version="1.2", conflicts={"b"}}
+    manifest.b = {name="b", arch="Universal", type="all", version="scm", depends={"c"}}
+    manifest.c1 = {name="c", arch="Universal", type="all", version="0.4",}
+    manifest.c2 = {name="c", arch="Universal", type="all", version="0.5",}
+    installed.a = manifest.a1
+
+    local pkgs, err = depends.get_depends_1({'a'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == "a-1.2", pkgs_fail_msg(pkgs, err))
+end
+
+-- installed a-1.0, a-1.1 a-1.2 a-1.3 available, a-1.2 and 1.3 conflicts d, a-1.1 depends b and c>0.4, installed d, update a
+tests.depends_u3 = function()
+    local manifest, installed = {}, {}
+    manifest.a1 = {name="a", arch="Universal", type="all", version="1.0"}
+    manifest.a2 = {name="a", arch="Universal", type="all", version="1.1", depends={"b", "c>0.4"}}
+    manifest.a3 = {name="a", arch="Universal", type="all", version="1.2", conflicts={"d"}}
+    manifest.a4 = {name="a", arch="Universal", type="all", version="1.3", conflicts={"d"}}
+    manifest.b = {name="b", arch="Universal", type="all", version="scm", depends={"c"}}
+    manifest.c1 = {name="c", arch="Universal", type="all", version="0.4"}
+    manifest.c2 = {name="c", arch="Universal", type="all", version="0.5"}
+    manifest.c3 = {name="c", arch="Universal", type="all", version="0.6"}
+    manifest.d = {name="d", arch="Universal", type="all", version="scm",}
+    installed.a = manifest.a1
+    installed.d = manifest.d
+
+    local pkgs, err = depends.get_depends_1({'a'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == "c-0.6 b-scm a-1.1", pkgs_fail_msg(pkgs, err))
+end
+
+-- installed a-1.0 c-scm, a-2.0 available, a provides b, b conflicts c, update a
+tests.provides_direct_and_conflicts_with_to_update_1 = function()
+    local manifest, installed = {}, {}
+    manifest.a1 = {name="a", arch="Universal", type="all", version="1.0"}
+    manifest.a2 = {name="a", arch="Universal", type="all", version="2.0", provides={"b-scm"}}
+    manifest.b = {name="b", arch="Universal", type="all", version="scm", conflicts={"c"}}
+    manifest.c = {name="c", arch="Universal", type="all", version="0.1"}
+    installed.a = manifest.a1
+    installed.c = manifest.c
+
+    local pkgs, err = depends.get_depends_1({'a'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == 'a-2.0', pkgs_fail_msg(pkgs, err))
+end
+
+-- installed a-1.0 c-scm, a-2.0 and 2.5 and 3.0 available, a-3.0 conflicts c, a provides b, b conflicts c, update a
+tests.provides_direct_and_conflicts_with_to_update_2 = function()
+    local manifest, installed = {}, {}
+    manifest.a1 = {name="a", arch="Universal", type="all", version="1.0"}
+    manifest.a2 = {name="a", arch="Universal", type="all", version="2.0", provides={"b-1.0"}}
+    manifest.a3 = {name="a", arch="Universal", type="all", version="2.5", provides={"b-scm"}}
+    manifest.a4 = {name="a", arch="Universal", type="all", version="3.0", conflicts={"c"}}
+
+    manifest.b1 = {name="b", arch="Universal", type="all", version="1.0", conflicts={"c"}}
+    manifest.b2 = {name="b", arch="Universal", type="all", version="1.1", conflicts={"c"}}
+    manifest.b3 = {name="b", arch="Universal", type="all", version="1.2"}
+
+    manifest.c = {name="c", arch="Universal", type="all", version="0.1"}
+    installed.a = manifest.a1
+    installed.c = manifest.c
+
+    local pkgs, err = depends.get_depends_1({'a'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == 'a-2.5', pkgs_fail_msg(pkgs, err))
+end
+
+-- installed a-1.2 b-1.0, x-1.2 provided, b-1.0 depends a>=1.2, b-1.1 depends a>=1.3, update b
+tests.version_of_provided_update_1 = function()
+    local manifest, installed = {}, {}
+    manifest.a = {name="a", arch="Universal", type="all", version="1.2", provides={"x-1.2"}}
+    manifest.b1 = {name="b", arch="Universal", type="all", version="1.0", depends={"a>=1.2"}}
+    manifest.b2 = {name="b", arch="Universal", type="all", version="1.1", depends={"a>=1.3"}}
+    installed.a = manifest.a
+    installed.b = manifest.b1
+
+    local pkgs, err = depends.get_depends_1({'b'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == nil, pkgs_fail_msg(pkgs, err))
+end
+
+-- installed x-scm b-1.0, a-1.2 provided, a-1.3 also available, b-1.1 depends a>=1.3, update b
+tests.version_of_provided_update_2 = function()
+    local manifest, installed = {}, {}
+    manifest.x = {name="x", arch="Universal", type="all", version="scm", provides={"a-1.2"}}
+    manifest.a = {name="a", arch="Universal", type="all", version="1.3",}
+    manifest.b1 = {name="b", arch="Universal", type="all", version="1.0"}
+    manifest.b2 = {name="b", arch="Universal", type="all", version="1.1", depends={"a>=1.3"}}
+    installed.x = manifest.x
+    installed.b = manifest.b1
+
+    local pkgs, err = depends.get_depends_1({'b'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == nil and err:find("but installed at version"), pkgs_fail_msg(pkgs, err))
+end
+
+-- installed x-scm b-1.0, a-1.2 provided, a-1.3 also available, b-1.0.8 depends a-1.2, b-1.1 depends a>=1.3, update b
+tests.version_of_provided_update_3 = function()
+    local manifest, installed = {}, {}
+    manifest.x = {name="x", arch="Universal", type="all", version="scm", provides={"a-1.2"}}
+    manifest.a = {name="a", arch="Universal", type="all", version="1.3",}
+    manifest.b1 = {name="b", arch="Universal", type="all", version="1.0"}
+    manifest.b2 = {name="b", arch="Universal", type="all", version="1.0.8", depends={"a-1.2"}}
+    manifest.b3 = {name="b", arch="Universal", type="all", version="1.1", depends={"a>=1.3"}}
+    installed.x = manifest.x
+    installed.b = manifest.b1
+
+    local pkgs, err = depends.get_depends_1({'b'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == 'b-1.0.8', pkgs_fail_msg(pkgs, err))
+end
+
+-- installed a-1.0 b-1.0, b-2.0 depends c>=2.0, c-1.9 and 2.0 and 2.1 depends d~>3.3, d from 3.2 to 3.4 available, update a + b
+tests.version_of_depends_update_1 = function()
+    local manifest, installed = {}, {}
+    manifest.a = {name="a", arch="Universal", type="all", version="1.0", depends={"b<=1.0"}}
+
+    manifest.b1 = {name="b", arch="Universal", type="all", version="1.0"}
+    manifest.b2 = {name="b", arch="Universal", type="all", version="2.0", depends={"c>=2.0"}}
+
+    manifest.c1 = {name="c", arch="Universal", type="all", version="1.9", depends={"d~>3.3"}}
+    manifest.c2 = {name="c", arch="Universal", type="all", version="2.0", depends={"d~>3.3"}}
+    manifest.c3 = {name="c", arch="Universal", type="all", version="2.1", depends={"d~>3.3"}}
+
+    manifest.d1 = {name="d", arch="Universal", type="all", version="3.2",}
+    manifest.d2 = {name="d", arch="Universal", type="all", version="3.3",}
+    manifest.d3 = {name="d", arch="Universal", type="all", version="3.3.1",}
+    manifest.d4 = {name="d", arch="Universal", type="all", version="3.3.2",}
+    manifest.d5 = {name="d", arch="Universal", type="all", version="3.4",}
+
+    installed.a = manifest.a
+    installed.b = manifest.b1
+
+    local pkgs, err = depends.get_depends_1({'a', 'b'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == "d-3.3.2 c-2.1 b-2.0", pkgs_fail_msg(pkgs, err))
+end
+
+-- installed b-1.0 c-1.0, a-2.0 depends x, c-1.0 depends b>=1.0, c-2.0 depends a>=2.0 and b>=1.0, update c
+tests.version_of_depends_update_2 = function()
+    local manifest, installed = {}, {}
+    manifest.a1 = {name="a", arch="Universal", type="all", version="1.0"}
+    manifest.a2 = {name="a", arch="Universal", type="all", version="2.0", depends={"x"}}
+
+    manifest.b = {name="b", arch="Universal", type="all", version="1.0"}
+
+    manifest.c1 = {name="c", arch="Universal", type="all", version="1.0", depends={"b>=1.0"}}
+    manifest.c2 = {name="c", arch="Universal", type="all", version="2.0", depends={"a>=2.0","b>=1.0"}}
+
+    manifest.x = {name="x", arch="Universal", type="all", version="1.0"}
+
+    installed.b = manifest.b
+    installed.c = manifest.c1
+
+    local pkgs, err = depends.get_depends_1({'c'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == "x-1.0 a-2.0 c-2.0", pkgs_fail_msg(pkgs, err))
+end
+
+-- installed a-1.0, a-2.0 depends b==1.0, b-1.0 depends c, c depends a>=1.0, update a
+tests.depends_circular_update_1 = function()
+    local manifest, installed = {}, {}
+    manifest.a1 = {name="a", arch="Universal", type="all", version="1.0"}
+    manifest.a2 = {name="a", arch="Universal", type="all", version="2.0", depends={"b==1.0"}}
+    manifest.b = {name="b", arch="Universal", type="all", version="1.0", depends={"c"}}
+    manifest.c = {name="c", arch="Universal", type="all", version="scm", depends={"a>=1.0"}}
+    installed.a = manifest.a1
+
+    local pkgs, err = depends.get_depends_1({'a'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == nil and err:find("circular"), pkgs_fail_msg(pkgs, err))
+end
+
+-- installed a-1.0 c-1.0, a-2.0 depends b and c, b-1.0 conflicts c, b-2.0 available, update a + c
+tests.conflicts_and_depends_with_to_update_1 = function()
+    local manifest, installed = {}, {}
+    manifest.a1 = {name="a", arch="Universal", type="all", version="1.0", depends={"b"}}
+    manifest.a2 = {name="a", arch="Universal", type="all", version="2.0", depends={"b", "c"}}
+    manifest.b1 = {name="b", arch="Universal", type="all", version="1.0", conflicts={"c"}}
+    manifest.b2 = {name="b", arch="Universal", type="all", version="2.0"}
+    manifest.c = {name="c", arch="Universal", type="all", version="1.0"}
+    installed.a = manifest.a1
+    installed.c = manifest.c
+
+    local pkgs, err = depends.get_depends_1({'a', 'c'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == "b-2.0 a-2.0", pkgs_fail_msg(pkgs, err))
+end
+
+-- installed x-1.0 b-0.9, a-1.0 provided, b-1.0 depends a==1.0, b-1.1 depends a>1.0, update b
+tests.installed_not_in_manifest_update_1 = function()
+    local manifest, installed = {}, {}
+    manifest.b1 = {name="b", arch="Universal", type="all", version="0.9"}
+    manifest.b2 = {name="b", arch="Universal", type="all", version="1.0", depends={"a==1.0"}}
+    manifest.b3 = {name="b", arch="Universal", type="all", version="1.1", depends={"a>1.0"}}
+    installed.x = {name="x", arch="Universal", type="all", version="1.0", provides={"a-1.0"}}
+    installed.b = manifest.b1
+
+    local pkgs, err = depends.get_depends_1({'b'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == "b-1.0", pkgs_fail_msg(pkgs, err))
+end
+
+-- installed x-1.0 b-1.0, a-1.0 provided, b-1.1 depends a>1.0, update b
+tests.installed_not_in_manifest_update_2 = function()
+    local manifest, installed = {}, {}
+    manifest.b1 = {name="b", arch="Universal", type="all", version="0.9"}
+    manifest.b2 = {name="b", arch="Universal", type="all", version="1.0", depends={"a==1.0"}}
+    manifest.b3 = {name="b", arch="Universal", type="all", version="1.1", depends={"a>1.0"}}
+    installed.x = {name="x", arch="Universal", type="all", version="1.0", provides={"a-1.0"}}
+    installed.b = manifest.b2
+
+    local pkgs, err = depends.get_depends_1({'b'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == nil, pkgs_fail_msg(pkgs, err))
+end
+
+-- installed x-1.0 b-1.0, a-1.0 provided, b-1.1 depends a>1.0, update b
+tests.installed_not_in_manifest_update_3 = function()
+    local manifest, installed = {}, {}
+    manifest.b1 = {name="b", arch="Universal", type="all", version="1.0", depends={"a==1.0"}}
+    manifest.b2 = {name="b", arch="Universal", type="all", version="1.1", depends={"a>1.0"}}
+    manifest.c1 = {name="c", arch="Universal", type="all", version="1.0", depends={"a"}}
+    manifest.c2 = {name="c", arch="Universal", type="all", version="1.1", depends={"b"}}
+    manifest.c3 = {name="c", arch="Universal", type="all", version="1.2", depends={"b>1.0"}}
+    installed.x = {name="x", arch="Universal", type="all", version="1.0", provides={"a-1.0"}}
+    installed.b = manifest.b1
+    installed.c = manifest.c1
+
+    local pkgs, err = depends.get_depends_1({'b'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == nil, pkgs_fail_msg(pkgs, err))
+end
+
+-- installed a-1.0 b-1.0, b (all new versions) conflicts a, a (all new versions) conflicts b, update a + b
+tests.conflicts_with_to_update_1 = function()
+    local manifest, installed = {}, {}
+    manifest.a1 = {name="a", arch="Universal", type="all", version="1.0"}
+    manifest.a2 = {name="a", arch="Universal", type="all", version="1.1", conflicts={"b"}}
+    manifest.a3 = {name="a", arch="Universal", type="all", version="1.2", conflicts={"b"}}
+    manifest.b1 = {name="b", arch="Universal", type="all", version="1.0"}
+    manifest.b2 = {name="b", arch="Universal", type="all", version="2.0", conflicts={"a"}} 
+    manifest.b3 = {name="b", arch="Universal", type="all", version="3.0", conflicts={"a", "x"}}
+    installed.a = manifest.a1
+    installed.b = manifest.b1
+
+    local pkgs, err = depends.get_depends_1({'a', 'b'}, installed, manifest, true, true)
+    assert(describe_packages(pkgs) == nil and err:find("conflicts"), pkgs_fail_msg(pkgs, err))
 end
 
 -- actually run the test suite

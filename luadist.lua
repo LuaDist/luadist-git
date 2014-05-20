@@ -23,6 +23,7 @@ Usage: luadist [DEPLOYMENT_DIRECTORY] <COMMAND> [ARGUMENTS...] [-VARIABLES...]
 
         help      - print this help
         install   - install modules
+        update    - update modules
         remove    - remove modules
         refresh   - update information about modules in repositories
         list      - list installed modules
@@ -104,6 +105,58 @@ Usage: luadist [DEPLOYMENT_DIRECTORY] install MODULES... [-VARIABLES...]
                 os.exit(1)
             else
                print((cfg.simulate and "Simulated installation" or "Installation") .. " successful.")
+               return 0
+            end
+        end
+    },
+
+    -- Update modules.
+    ["update"] = {
+        help = [[
+Usage: luadist [DEPLOYMENT_DIRECTORY] install MODULES... [-VARIABLES...]
+
+    The 'update' command will update specified MODULES to
+    DEPLOYMENT_DIRECTORY. LuaDist will also automatically resolve, download
+    and install all dependencies.
+
+    If DEPLOYMENT_DIRECTORY is not specified, the deployment directory
+    of LuaDist is used.
+
+    You can use * (an asterisk sign) in the name of the module as a wildcard
+    with the meaning 'any symbols' (in most shells, the module name then must
+    be quoted to prevent the expansion of asterisk by the shell itself).
+
+    Optional CMake VARIABLES in -D format (e.g. -Dvariable=value) or LuaDist
+    configuration VARIABLES (e.g. -variable=value) can be specified.
+
+    The -simulate configuration option makes LuaDist only to simulate the
+    update of modules (no modules will be really updated).
+        ]],
+
+        run = function (deploy_dir, modules, cmake_variables)
+            deploy_dir = deploy_dir or dist.get_deploy_dir()
+            if type(modules) == "string" then modules = {modules} end
+            cmake_variables = cmake_variables or {}
+            assert(type(deploy_dir) == "string", "luadist.update: Argument 'deploy_dir' is not a string.")
+            assert(type(modules) == "table", "luadist.update: Argument 'modules' is not a string or table.")
+            assert(type(cmake_variables) == "table", "luadist.update: Argument 'cmake_variables' is not a table.")
+            deploy_dir = sys.abs_path(deploy_dir)
+
+            if cfg.simulate then
+                print("NOTE: this is just simulation.")
+            end
+
+            if #modules == 0 then
+                print("No modules to update specified.")
+                return 0
+            end
+
+            local ok, err = dist.update(modules, deploy_dir, cmake_variables)
+            if not ok then
+                print(err)
+                os.exit(1)
+            else
+               print((cfg.simulate and "Simulated update" or "Update") .. " successful.")
                return 0
             end
         end

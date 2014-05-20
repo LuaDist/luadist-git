@@ -46,8 +46,6 @@ end
 function quote(argument)
     assert(type(argument) == "string", "sys.quote: Argument 'argument' is not a string.")
 
-    -- TODO: This seems like a not very nice hack. Why is it needed?
-    --       Wouldn't it be better to fix the problem where it originates?
     -- replace '/' path separators for '\' on Windows
     if cfg.arch == "Windows" and argument:match("^[%u%U.]?:?[/\\].*") then
         argument = argument:gsub("//","\\"):gsub("/","\\")
@@ -114,13 +112,13 @@ end
 -- Return whether the path is a root.
 function is_root(path)
     assert(type(path) == "string", "sys.is_root: Argument 'path' is not a string.")
-    return utils.to_boolean(path:find("^[a-zA-Z]:[/\\]$") or path:find("^[/\\]$"))
+    return utils.to_boolean(path:find("^[%u%U.]?:?[/\\]$"))
 end
 
 -- Return whether the path is absolute.
 function is_abs(path)
     assert(type(path) == "string", "sys.is_abs: Argument 'path' is not a string.")
-    return utils.to_boolean(path:find("^[a-zA-Z]:[/\\].*$") or path:find("^[/\\].*$"))
+    return utils.to_boolean(path:find("^[%u%U.]?:?[/\\].*$"))
 end
 
 -- Return whether the specified file or directory exists.
@@ -326,7 +324,7 @@ end
 function move_to(file_or_dir, dest_dir)
     assert(type(file_or_dir) == "string", "sys.move_to: Argument 'file_or_dir' is not a string.")
     assert(type(dest_dir) == "string", "sys.move_to: Argument 'dest_dir' is not a string.")
-    assert(is_dir(dest_dir), "sys.move_to: Destination '" .. dest_dir .."' is not a directory.")
+    assert(is_dir(dest_dir), "sys.move_to: destination '" .. dest_dir .."' is not a directory.")
 
     -- Extract file/dir name from its path
     local file_or_dir_name = extract_name(file_or_dir)
@@ -378,7 +376,8 @@ function delete(path)
         elseif is_file(path) then
             return os.remove(path)
         else
-            return exec("rd /S /Q " .. quote(path))
+            --return exec("rd /S /Q " .. quote(path))
+            return exec("move /y " .. quote(path) .. " " .. quote(tmp_dir()))
         end
     else
         return exec("rm -rf " .. quote(path))
