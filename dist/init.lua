@@ -75,61 +75,87 @@ function install(package_names, deploy_dir, variables)
     local manifest, err = mf.get_manifest()
     if not manifest then return nil, "Error getting manifest: " .. err, 101 end
 
-    -- get dependency manifest
-    -- TODO: Is it good that dep_manifest is deploy_dir-specific?
-    -- Probably it'd be better not to be specific, but then there're
-    -- problems with 'provides'. E.g. What to do if there's a module
-    -- installed, that is provided by two different modules in two deploy_dirs?
-    local dep_manifest_file = sys.abs_path(sys.make_path(deploy_dir, cfg.dep_cache_file))
-    local dep_manifest, status = {}
-    if sys.exists(dep_manifest_file) and not utils.cache_timeout_expired(cfg.cache_timeout, dep_manifest_file) then
-        status, dep_manifest = mf.load_manifest(dep_manifest_file)
-        if not dep_manifest then return nil, status end
-    end
-
     -- resolve dependencies
-    local dependencies, dep_manifest_or_err = depends.get_depends(package_names, installed, manifest, dep_manifest, deploy_dir, false, false)
-    if not dependencies then return nil, dep_manifest_or_err, 102 end
-    if #dependencies == 0 then return nil, "No packages to install." end
-
-    -- save updated dependency manifest
-    local ok, err = sys.make_dir(sys.parent_dir(dep_manifest_file))
-    if not ok then return nil, err end
-    ok, err = mf.save_manifest(dep_manifest_or_err, dep_manifest_file)
-    if not ok then return nil, err end
+    local dependencies, err = depends.get_depends(package_names, installed, manifest, false, false, deploy_dir)
+    if err then return nil, err, 102 end
+    if #dependencies == 0 then return nil, "No packages to install.", 102 end
 
     -- fetch the packages from repository
-    local fetched_pkgs = {}
-    for _, pkg in pairs(dependencies) do
-        local fetched_pkg, err = package.fetch_pkg(pkg, sys.make_path(deploy_dir, cfg.temp_dir))
-        if not fetched_pkg then return nil, err, 103 end
-        table.insert(fetched_pkgs, fetched_pkg)
-    end
+    local dirs, err = package.fetch_pkgs(dependencies, sys.make_path(deploy_dir, cfg.temp_dir))
+    if not dirs then return nil, err end
 
     -- install fetched packages
-    for _, pkg in pairs(fetched_pkgs) do
-        local ok, err, status = package.install_pkg(pkg.download_dir, deploy_dir, variables, pkg.preserve_pkg_dir)
-        if not ok then return nil, err, status end
+    for _, dir in pairs(dirs) do
+        ok, err = package.install_pkg(dir, deploy_dir, variables, false)
+        if not ok then return nil, err, 103 end
     end
 
     return true
 end
 
--- Manually deploy packages from 'package_dirs' to 'deploy_dir', using optional
--- CMake 'variables'. The 'package_dirs' are preserved (will not be deleted).
-function make(deploy_dir, package_dirs, variables)
+-- Update functionality
+function update(package_names, deploy_dir, variables)
+    if not package_names then return true end
     deploy_dir = deploy_dir or cfg.root_dir
-    package_dirs = package_dirs or {}
 
-    assert(type(deploy_dir) == "string", "dist.make: Argument 'deploy_dir' is not a string.")
-    assert(type(package_dirs) == "table", "dist.make: Argument 'package_dirs' is not a table.")
+     if type(package_names) == "string" then package_names = {package_names} end
+
+    assert(type(package_names) == "table", "dist.install: Argument 'package_names' is not a table or string.")
+    assert(type(deploy_dir) == "string", "dist.install: Argument 'deploy_dir' is not a string.")
     deploy_dir = sys.abs_path(deploy_dir)
 
-    for _, dir in pairs(package_dirs) do
-        local ok, err = package.install_pkg(sys.abs_path(dir), deploy_dir, variables, true)
+    -- find installed packages
+
+    local installed = depends.get_installed(deploy_dir)
+
+    -- get manifest
+    local manifest, err = mf.get_manifest()
+    if not manifest then return nil, "Error getting manifest: " .. err end
+
+    -- resolve dependencies
+    local dependencies, err = depends.get_depends_1(package_names, installed, manifest, false, false, deploy_dir)
+    if err then return nil, err end
+    if #dependencies == 0 then return nil, "No packages to update."
+    else
+        pkgs_to_remove = depends.find_packages(package_names, installed)
+        -- delete installed packages
+        for _, pkg in pairs(pkgs_to_remove) do
+            local pkg_distinfo_dir = sys.make_path(cfg.distinfos_dir, pkg.name .. "-" .. pkg.version)
+            local ok, err = package.remove_pkg(pkg_distinfo_dir, deploy_dir)
+            if not ok then return nil, err end
+        end
+    end
+
+    -- fetch the packages from repository
+    local dirs, err = package.fetch_pkgs(dependencies, sys.make_path(deploy_dir, cfg.temp_dir))
+    if not dirs then return nil, err end
+
+    -- install fetched packages
+    for _, dir in pairs(dirs) do
+        ok, err, status = package.install_pkg(dir, deploy_dir, variables, false)
+        if not ok then return nil, err, status end
+    end
+
+    return true
+
+end
+
+-- Manually deploy packages from 'package_paths' to 'deploy_dir', using optional
+-- CMake 'variables'. The 'package_paths' are preserved (will not be deleted).
+function make(deploy_dir, package_paths, variables)
+    deploy_dir = deploy_dir or cfg.root_dir
+    package_paths = package_paths or {}
+
+    assert(type(deploy_dir) == "string", "dist.make: Argument 'deploy_dir' is not a string.")
+    assert(type(package_paths) == "table", "dist.make: Argument 'package_paths' is not a table.")
+    deploy_dir = sys.abs_path(deploy_dir)
+
+    local ok, err
+    for _, path in pairs(package_paths) do
+        ok, err = package.install_pkg(sys.abs_path(path), deploy_dir, variables, true)
         if not ok then return nil, err end
     end
-    return true
+    return ok
 end
 
 -- Remove 'package_names' from 'deploy_dir' and return the number of removed
@@ -152,6 +178,29 @@ function remove(package_names, deploy_dir)
         pkgs_to_remove = depends.find_packages(package_names, installed)
     end
 
+    if #package_names == 0 then
+        print("Are you sure that you want to remove ALL modules (y/n)?")
+    else
+        print("Are you sure that you want to remove these modules (y/n)?")
+    end
+
+    for i, pkg_name in pairs(package_names) do
+            io.write(pkg_name)
+            if i == #pkg_name then
+                io.write(', ')
+            end
+    end
+    print()
+    repeat
+        --io.write("continue with this operation (y/n)? ")
+        io.flush()
+        answer=io.read()
+    until answer=="y" or answer=="n"
+
+    if answer == "n" then
+        return 0
+    end
+
     -- remove them
     for _, pkg in pairs(pkgs_to_remove) do
         local pkg_distinfo_dir = sys.make_path(cfg.distinfos_dir, pkg.name .. "-" .. pkg.version)
@@ -162,7 +211,7 @@ function remove(package_names, deploy_dir)
     return #pkgs_to_remove
 end
 
--- Download 'pkg_names' to 'fetch_dir' and return the table of their directories.
+-- Download 'pkg_names' to 'fetch_dir'.
 function fetch(pkg_names, fetch_dir)
     fetch_dir = fetch_dir or sys.current_dir()
     assert(type(pkg_names) == "table", "dist.fetch: Argument 'pkg_names' is not a string or table.")
@@ -172,6 +221,7 @@ function fetch(pkg_names, fetch_dir)
     local manifest = mf.get_manifest()
 
     local pkgs_to_fetch = {}
+
     for _, pkg_name in pairs(pkg_names) do
 
         -- retrieve available versions
@@ -188,14 +238,13 @@ function fetch(pkg_names, fetch_dir)
         table.insert(pkgs_to_fetch, packages[1])
     end
 
-    local fetched_dirs = {}
-    for _, pkg in pairs(pkgs_to_fetch) do
-        local fetched_pkg, err = package.fetch_pkg(pkg, fetch_dir)
-        if not fetched_pkg then return nil, err end
-        table.insert(fetched_dirs, fetched_pkg.download_dir)
-    end
+    local ok, err = package.fetch_pkgs(pkgs_to_fetch, fetch_dir)
 
-    return fetched_dirs
+    if not ok then
+        return nil, err
+    else
+        return ok
+    end
 end
 
 -- Upload binary version of given modules installed in the specified
@@ -300,50 +349,27 @@ function upload_modules(deploy_dir, module_names, dest_git_base_url)
 end
 
 -- Returns table with information about module's dependencies, using the cache.
-function dependency_info(module, deploy_dir)
+function dependency_info(module, cache_file)
     cache_file = cache_file or sys.abs_path(sys.make_path(cfg.root_dir, cfg.dep_cache_file))
-    assert(type(module) == "string", "dist.dependency_info: Argument 'module' is not a string.")
-    assert(type(deploy_dir) == "string", "dist.dependency_info: Argument 'deploy_dir' is not a string.")
+    assert(type(module) == "string", "dist.dep_info: Argument 'module' is not a string.")
+    assert(type(cache_file) == "string", "dist.dep_info: Argument 'cache_file' is not a string.")
 
-    -- get manifest
-    local manifest, err = mf.get_manifest()
-    if not manifest then return nil, "Error getting manifest: " .. err end
-
-    -- get dependency manifest
-    -- TODO: Is it good that dep_manifest is deploy_dir-specific?
-    -- Probably it'd be better not to be specific, but then there're
-    -- problems with 'provides'. E.g. What to do if there's a module
-    -- installed, that is provided by two different modules in two deploy_dirs?
-    local dep_manifest_file = sys.abs_path(sys.make_path(deploy_dir, cfg.dep_cache_file))
-    local dep_manifest, status = {}
-    if sys.exists(dep_manifest_file) and cfg.cache and not utils.cache_timeout_expired(cfg.cache_timeout, dep_manifest_file) then
-        status, dep_manifest = mf.load_manifest(dep_manifest_file)
-        if not dep_manifest then return nil, status end
+    local dep_cache, err = {}
+    if sys.exists(cache_file) then
+        -- TODO: use current 'deploy_dir' for cache file, or 'root_dir'?
+        dep_cache, err = mf.load_manifest(cache_file)
+        if not dep_cache then return nil, err end
     end
 
-    -- force getting the dependency information
-    local installed = {}
+    -- get dependency information and updated cache
+    local dep_manifest = {}
+    dep_manifest, dep_cache_or_err = depends.dependency_manifest(module, dep_manifest, dep_cache)
+    if not dep_manifest then return nil, dep_cache_or_err end
+    dep_cache = dep_cache_or_err
 
-    -- resolve dependencies
-    local dependencies, dep_manifest_or_err = depends.get_depends(module, installed, manifest, dep_manifest, deploy_dir, false, true and not cfg.debug)
-    if not dependencies then return nil, dep_manifest_or_err end
-
-    -- save updated dependency manifest
-    local ok, err = sys.make_dir(sys.parent_dir(dep_manifest_file))
-    if not ok then return nil, err end
-    ok, err = mf.save_manifest(dep_manifest_or_err, dep_manifest_file)
+    -- save updated cache
+    local ok, err = mf.save_manifest(dep_cache, cache_file)
     if not ok then return nil, err end
 
-    -- collect just relevant dependencies from dependency manifest
-    local relevant_deps = {}
-    for _, dep in pairs(dependencies) do
-        local name_ver = dep.name .. "-" .. (dep.was_scm_version and "scm" or dep.version)
-        if dep_manifest_or_err[name_ver] then
-            table.insert(relevant_deps, dep_manifest_or_err[name_ver])
-        else
-            return nil, "Error: dependency information for '" .. name_ver .. "' not found in dependency manifest."
-        end
-    end
-
-    return relevant_deps
+    return dep_manifest
 end
