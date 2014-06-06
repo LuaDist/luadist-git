@@ -1,7 +1,3 @@
--- Note: the code of this module is borrowed from the original LuaDist project
-
-
-
 --- LuaDist version constraints functions
 -- Peter Drahoš, LuaDist Project, 2010
 -- Original Code borrowed from LuaRocks Project

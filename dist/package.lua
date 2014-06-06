@@ -8,23 +8,6 @@ local sys = require "dist.sys"
 local mf = require "dist.manifest"
 local utils = require "dist.utils"
 local depends = require "dist.depends"
-local constraints = require "dist.constraints"
-
--- Return whether the package in given 'pkg_dir' is of a source type.
-function is_source_type(pkg_dir)
-    assert(type(pkg_dir) == "string", "package.is_source_type: Argument 'pkg_dir' is not a string.")
-    pkg_dir = sys.abs_path(pkg_dir)
-    return utils.to_boolean(sys.exists(sys.make_path(pkg_dir, "CMakeLists.txt")))
-end
-
--- Ensure proper arch and type for the given source 'dist_info' table and return it.
--- WARNING: this function should be used only for 'dist_info' tables of modules that are of a source type!
-function ensure_source_arch_and_type(dist_info)
-    assert(type(dist_info) == "table", "package.ensure_source_arch_and_type: Argument 'dist_info' is not a table.")
-    dist_info.arch = dist_info.arch or "Universal"
-    dist_info.type = dist_info.type or "source"
-    return dist_info
-end
 
 -- Remove package from 'pkg_distinfo_dir' of 'deploy_dir'.
 function remove_pkg(pkg_distinfo_dir, deploy_dir)
@@ -110,7 +93,10 @@ function install_pkg(pkg_dir, deploy_dir, variables, preserve_pkg_dir)
     if not info then return nil, "Error installing: the directory '" .. pkg_dir .. "' doesn't exist or doesn't contain valid 'dist.info' file.", 501 end
 
     -- check if the package is source
-    if is_source_type(pkg_dir) then info = ensure_source_arch_and_type(info) end
+    if sys.exists(sys.make_path(pkg_dir, "CMakeLists.txt")) then
+        info.arch = info.arch or "Universal"
+        info.type = info.type or "source"
+    end
 
     -- check package's architecture
     if not (info.arch == "Universal" or info.arch == cfg.arch) then
@@ -277,47 +263,47 @@ function build_pkg(src_dir, deploy_dir, variables)
 
     -- Rewrite dependencies for binary package
     if info.depends then
-        local dependencies = {}
-        -- collect all dependencies in single table
-        for k, dep in pairs(info.depends) do
-            -- if 'depend' is a table of OS specific dependencies for
-            -- this arch, add them to the normal dependencies of pkg
-            if type(dep) == "table" then
-                if k == cfg.arch then
-                    for _, os_specific_depend in pairs(dep) do
-                        table.insert(dependencies, os_specific_depend)
-                    end
-                end
-            elseif type(dep) == "string" then
-                table.insert(dependencies, dep)
-            end
-        end
+       local dependencies = {}
+       -- collect all dependencies in single table
+       for k, dep in pairs(info.depends) do
+           -- if 'depend' is a table of OS specific dependencies for
+           -- this arch, add them to the normal dependencies of pkg
+           if type(dep) == "table" then
+               if k == cfg.arch then
+                   for _, os_specific_depend in pairs(dep) do
+                       table.insert(dependencies, os_specific_depend)
+                   end
+               end
+           elseif type(dep) == "string" then
+               table.insert(dependencies, dep)
+           end
+       end
 
-        -- Search for installed dependencies
-        local installed = depends.get_installed(deploy_dir)
-        for k, dep in pairs(dependencies) do
-            local version
-            local name = depends.split_name_constraint(dep)
-            for i, package in pairs(installed) do
-                if (package.name == name) then
-                    version = package.version
-                end
-            end
-            dependencies[k] = name
+       -- Search for installed dependencies
+       local installed = depends.get_installed(deploy_dir)
+       for k, dep in pairs(dependencies) do
+           local version
+           local name = depends.split_name_constraint(dep)
+           for i, package in pairs(installed) do
+               if (package.name == name) then
+                   version = package.version
+               end
+           end
+           dependencies[k] = name
 
-            -- Convert version to major/minor only, assuming semantic versioning
-            if version then
-                local ver = constraints.parseVersion(version)
-                if ver and ver[1] then
-                    local major = ver[1][1] or "0"
-                    local minor = ver[1][2] or "0"
-                    version = major.."."..minor
-                    dependencies[k] = name.."~="..version
-                end
-            end
-        end
-        -- Store the dependencies
-        info.depends = dependencies
+           -- Convert version to major/minor only, assuming semantic versioning
+           if version then
+               local ver = constraints.parseVersion(version)
+               if ver and ver[1] then
+                   local major = ver[1][1] or "0"
+                   local minor = ver[1][2] or "0"
+                   version = major.."."..minor
+                   dependencies[k] = name.."~="..version
+               end
+           end
+       end
+       -- Store the dependencies
+       info.depends = dependencies
     end
 
     -- save modified 'dist.info' file
@@ -352,11 +338,6 @@ function deploy_binary_pkg(pkg_dir, deploy_dir)
         return true, "Simulated deployment of package '" .. pkg_name .. "' sucessfull."
     end
 
-    -- If we do not have a file list make one
-    if not info.files then
-        info.files = { Unspecified = sys.get_file_list(pkg_dir) }
-    end
-
     -- copy all components of the module to the deploy_dir
     for _, component in ipairs(cfg.components) do
         if info.files[component] then
@@ -381,15 +362,11 @@ function deploy_binary_pkg(pkg_dir, deploy_dir)
     return true, "Package '" .. pkg_name .. "' successfully deployed to '" .. deploy_dir .. "'."
 end
 
--- Fetch package (table 'pkg') to download_dir. Return the original 'pkg' table
--- with 'pkg.download_dir' containing path to the directory of the
--- downloaded package.
+-- Fetch package (table 'pkg') to download_dir. Return path to the directory of
+-- downloaded package on success or an error message on error.
 --
 -- When optional 'suppress_printing' parameter is set to true, then messages
 -- for the user won't be printed during run of this function.
---
--- If the 'pkg' already contains the information about download directory (pkg.download_dir),
--- we assume the package was already downloaded there and won't download it again.
 function fetch_pkg(pkg, download_dir, suppress_printing)
     download_dir = download_dir or sys.current_dir()
     suppress_printing = suppress_printing or false
@@ -398,23 +375,18 @@ function fetch_pkg(pkg, download_dir, suppress_printing)
     assert(type(suppress_printing) == "boolean", "package.fetch_pkg: Argument 'suppress_printing' is not a boolean.")
     assert(type(pkg.name) == "string", "package.fetch_pkg: Argument 'pkg.name' is not a string.")
     assert(type(pkg.version) == "string", "package.fetch_pkg: Argument 'pkg.version' is not a string.")
-
-    -- if the package is already downloaded don't download it again
-    if pkg.download_dir then return pkg end
-
     assert(type(pkg.path) == "string", "package.fetch_pkg: Argument 'pkg.path' is not a string.")
     download_dir = sys.abs_path(download_dir)
 
     local pkg_full_name = pkg.name .. "-" .. pkg.version
     local repo_url = pkg.path
     local clone_dir = sys.abs_path(sys.make_path(download_dir, pkg_full_name))
-    pkg.download_dir = clone_dir
 
     -- check if download_dir already exists, assuming the package was already downloaded
     if sys.exists(sys.make_path(clone_dir, "dist.info")) then
         if cfg.cache and not utils.cache_timeout_expired(cfg.cache_timeout, clone_dir) then
             if not suppress_printing then print("'" .. pkg_full_name .. "' already in cache, skipping downloading (use '-cache=false' to force download).") end
-            return pkg
+            return clone_dir
         else
             sys.delete(sys.make_path(clone_dir))
         end
@@ -482,7 +454,41 @@ function fetch_pkg(pkg, download_dir, suppress_printing)
     -- delete '.git' directory
     if not cfg.debug then sys.delete(sys.make_path(clone_dir, ".git")) end
 
-    return pkg
+    return clone_dir
+end
+
+-- Fetch packages (table 'packages') to 'download_dir'. Return table of paths
+-- to the directories on success or an error message on error.
+--
+-- When optional 'suppress_printing' parameter is set to true, then messages
+-- for the user won't be printed during run of this function.
+function fetch_pkgs(packages, download_dir, suppress_printing)
+    download_dir = download_dir or sys.current_dir()
+    suppress_printing = suppress_printing or false
+    assert(type(packages) == "table", "package.fetch_pkgs: Argument 'packages' is not a table.")
+    assert(type(download_dir) == "string", "package.fetch_pkgs: Argument 'download_dir' is not a string.")
+    assert(type(suppress_printing) == "boolean", "package.fetch_pkgs: Argument 'suppress_printing' is not a boolean.")
+    download_dir = sys.abs_path(download_dir)
+
+    local fetched_dirs = {}
+    local dir, err
+
+    for _, pkg in pairs(packages) do
+        -- if package was downloaded by dependency resolving function, do not download it again.
+        if pkg.download_dir then
+            dir, err = pkg.download_dir, nil
+        -- else download it.
+        else
+            dir, err = fetch_pkg(pkg, download_dir, suppress_printing)
+        end
+        if not dir then
+            return nil, err
+        else
+            table.insert(fetched_dirs, dir)
+        end
+    end
+
+    return fetched_dirs
 end
 
 -- Return table with information about available versions of 'package'.
@@ -503,14 +509,6 @@ function retrieve_versions(package, manifest, suppress_printing)
         return nil, "No suitable candidate for package '" .. package .. "' found."
     else
         package = tmp_packages[1]
-    end
-
-    -- if the package's already downloaded, we assume it's desired to install the downloaded version
-    if package.download_dir then
-        local pkg_type = "binary"
-        if is_source_type(package.download_dir) then pkg_type = "source" end
-        if not suppress_printing then print("Using " .. package.name .. "-" .. package.version .. " (" .. pkg_type .. ") provided by " .. package.download_dir) end
-        return {package}
     end
 
     if not suppress_printing then print("Finding out available versions of " .. package.name .. "...") end
@@ -539,10 +537,7 @@ end
 -- Return table with information from package's dist.info and path to downloaded
 -- package. Optional argument 'deploy_dir' is used just as a temporary
 -- place to place the downloaded packages into.
---
--- When optional 'suppress_printing' parameter is set to true, then messages
--- for the user won't be printed during the execution of this function.
-function retrieve_pkg_info(package, deploy_dir, suppress_printing)
+function retrieve_pkg_info(package, deploy_dir)
     deploy_dir = deploy_dir or cfg.root_dir
     assert(type(package) == "table", "package.retrieve_pkg_info: Argument 'package' is not a table.")
     assert(type(deploy_dir) == "string", "package.retrieve_pkg_info: Argument 'deploy_dir' is not a string.")
@@ -551,25 +546,25 @@ function retrieve_pkg_info(package, deploy_dir, suppress_printing)
     local tmp_dir = sys.abs_path(sys.make_path(deploy_dir, cfg.temp_dir))
 
     -- download the package
-    local fetched_pkg, err = fetch_pkg(package, tmp_dir, suppress_printing)
-    if not fetched_pkg then return nil, "Error when retrieving the info about '" .. package.name .. "': " .. err end
+    local pkg_dir, err = fetch_pkg(package, tmp_dir)
+    if not pkg_dir then return nil, "Error when retrieving the info about '" .. package.name .. "': " .. err end
 
     -- load information from 'dist.info'
-    local info, err = mf.load_distinfo(sys.make_path(fetched_pkg.download_dir, "dist.info"))
+    local info, err = mf.load_distinfo(sys.make_path(pkg_dir, "dist.info"))
     if not info then return nil, err end
 
-    -- add other attributes
+    -- add 'path' attribute
     if package.path then info.path = package.path end
-    if package.was_scm_version then info.was_scm_version = package.was_scm_version end
 
     -- set default arch/type if not explicitly stated and package is of source type
-    if is_source_type(fetched_pkg.download_dir) then
-        info = ensure_source_arch_and_type(info)
+    if sys.exists(sys.make_path(pkg_dir, "CMakeLists.txt")) then
+        info.arch = info.arch or "Universal"
+        info.type = info.type or "source"
     elseif not (info.arch and info.type) then
-        return nil, fetched_pkg.download_dir .. ": binary package missing arch or type in 'dist.info'."
+        return nil, pkg_dir .. ": binary package missing arch or type in 'dist.info'."
     end
 
-    return info, fetched_pkg.download_dir
+    return info, pkg_dir
 end
 
 -- Return manifest, augmented with info about all available versions
