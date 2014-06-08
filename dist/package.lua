@@ -8,6 +8,7 @@ local sys = require "dist.sys"
 local mf = require "dist.manifest"
 local utils = require "dist.utils"
 local depends = require "dist.depends"
+local constraints = require "dist.constraints"
 
 -- Remove package from 'pkg_distinfo_dir' of 'deploy_dir'.
 function remove_pkg(pkg_distinfo_dir, deploy_dir)
