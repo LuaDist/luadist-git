@@ -376,8 +376,11 @@ function delete(path)
         elseif is_file(path) then
             return os.remove(path)
         else
-            --return exec("rd /S /Q " .. quote(path))
-            return exec("move /y " .. quote(path) .. " " .. quote(tmp_dir()))
+            -- return exec("rd /S /Q " .. quote(path))
+            -- return exec("move /y " .. quote(path) .. " " .. quote(tmp_dir()))
+			
+			-- rmdir is suported from win95
+			return exec("rmdir /s /q " .. quote(path))
         end
     else
         return exec("rm -rf " .. quote(path))
